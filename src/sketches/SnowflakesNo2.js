@@ -2,7 +2,11 @@ import p5 from "p5";
 import '@/lib/p5.audioReact.js';
 import initCapture from '@/lib/p5.capture.js';
 import SnowSphere from './classes/SnowSphere.js';
+import Snowflake from './classes/Snowflake.js';
 
+const base = import.meta.env.BASE_URL || './';
+const audio = base + 'audio/SnowflakesNo2.mp3';
+const midi = base + 'audio/SnowflakesNo2.mid';
 
 const sketch = (p) => {
   /** 
@@ -12,14 +16,20 @@ const sketch = (p) => {
   p.audioSampleRate = 0;
   p.totalAnimationFrames = 0;
   p.PPQ = 3840 * 4;
-  p.bpm = 88;
+  p.bpm = 96;
   p.audioLoaded = false;
   p.songHasFinished = false;
   p.snowSphere = null;
-
+  p.snowflakes = []
+  
   p.preload = () => {
-    // p.loadSong(audio, midi, (result) => {
-    // });
+    p.loadSong(audio, midi, (result) => {
+      const track1 = result.tracks[9].notes; // Synth 2 - GlockenSpiel
+      const track2 = result.tracks[4].notes; // Rick FUll Strings
+      p.scheduleCueSet(track1, 'executeTrack1');
+      p.scheduleCueSet(track2, 'executeTrack2');
+      p.hideLoader();
+    });
   };
 
   p.setup = () => {
@@ -30,12 +40,11 @@ const sketch = (p) => {
     p.canvas.style.position = 'relative';
     p.canvas.style.zIndex = '1';
     initCapture(p, { prefix: 'SnowflakesNo2', enabled: false, captureCSSBackground: false });
-    p.hideLoader();
     
     p.cam = p.createCamera();
     p.cam.setPosition(0, 0, p.height / 2);
     
-    p.snowSphere = new SnowSphere(p);
+    p.snowSphere = new SnowSphere(p, 1000);
     p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
     p.rotationAmount = p.random([-0.005, 0.005]);
     
@@ -56,6 +65,11 @@ const sketch = (p) => {
     }
     
     p.snowSphere.show();
+
+    for (let i = p.snowflakes.length - 1; i >= 0; i--) {
+        p.snowflakes[i].update();
+        p.snowflakes[i].draw();
+    }
   };
   
   p.mouseWheel = (event) => {
@@ -66,6 +80,34 @@ const sketch = (p) => {
   };
 
   p.executeTrack1 = (note) => {
+    const notesPerBarForLoop = [8, 6, 8, 8, 8, 8, 7, 5];
+    const { currentCue, durationTicks } = note;
+    const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
+    const x = p.random(-p.width / 2, p.width / 2);
+    const y = p.random(-p.height / 2, p.height / 2);
+    const z = -p.height;
+    
+    const loopLength = notesPerBarForLoop.reduce((a, b) => a + b, 0);
+    const positionInLoop = ((currentCue - 1) % loopLength) + 1;
+    let cumulative = 0;
+    
+    if (notesPerBarForLoop.some(notes => (cumulative += notes) === positionInLoop)) {
+      p.snowflakes = [];
+    }
+
+    p.snowflakes.push(new Snowflake(p, x, y, z, duration));
+  };
+
+  p.executeTrack2 = (note) => {
+    const { durationTicks } = note;
+    const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
+    
+    p.snowSphere = new SnowSphere(p, duration * 1000, true);
+    p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
+    p.rotationAmount = p.random([-0.005, 0.005]);
+    
+    const auroraGradient = p.generateAuroraBackground();
+    document.documentElement.style.setProperty('--gradient-bg', auroraGradient);
   };
 
   p.generateAuroraBackground = () => {

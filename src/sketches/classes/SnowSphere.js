@@ -3,19 +3,20 @@
  * Static snowflakes distributed within a sphere
  */
 export default class SnowSphere {
-  constructor(p, options = {}) {
+  constructor(p, revealDuration = 5000, useSongTime = false, options = {}) {
     this.p = p;
     
     this.defaultSize = p.height >= p.width ? p.height : p.width;
     this.density = options.density || 1200;
     this.radius = options.radius || this.defaultSize / 2;
-    this.revealDuration = options.revealDuration || 5000; 
+    this.revealDuration = revealDuration;
+    this.useSongTime = useSongTime;
     
     this.pos = [];
     this.size = [];
     this.rot = [];
     
-    this.startTime = p.millis();
+    this.startTime = useSongTime ? (p.song ? p.song.currentTime() * 1000 : 0) : p.millis();
     this.visibleCount = 0;
     
     this.init();
@@ -46,7 +47,8 @@ export default class SnowSphere {
   show() {
     const p = this.p;
     
-    const elapsed = p.millis() - this.startTime;
+    const currentTime = this.useSongTime ? (p.song ? p.song.currentTime() * 1000 : 0) : p.millis();
+    const elapsed = currentTime - this.startTime;
     const progress = p.constrain(elapsed / this.revealDuration, 0, 1);
     this.visibleCount = Math.floor(progress * this.density);
     
