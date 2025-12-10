@@ -24,7 +24,7 @@ const sketch = (p) => {
   
   p.preload = () => {
     p.loadSong(audio, midi, (result) => {
-      const track1 = result.tracks[9].notes; // Synth 2 - GlockenSpiel
+      const track1 = result.tracks[7].notes; // Sampler 2 - Vibraphone
       const track2 = result.tracks[4].notes; // Rick FUll Strings
       p.scheduleCueSet(track1, 'executeTrack1');
       p.scheduleCueSet(track2, 'executeTrack2');
@@ -35,7 +35,6 @@ const sketch = (p) => {
   p.setup = () => {
     p.pixelDensity(1);
     p.createCanvas(window.innerWidth, window.innerHeight, p.WEBGL);
-    p.smooth();
     p.frameRate(60);
     p.canvas.style.position = 'relative';
     p.canvas.style.zIndex = '1';
@@ -48,6 +47,9 @@ const sketch = (p) => {
     p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
     p.rotationAmount = p.random([-0.005, 0.005]);
     
+    p.snowflakePositions = [];
+    p.patternIndex = 0;
+    
     // Set aurora background
     const auroraGradient = p.generateAuroraBackground();
     document.documentElement.style.setProperty('--gradient-bg', auroraGradient);
@@ -58,16 +60,28 @@ const sketch = (p) => {
     p.clear();
     p[p.rotationFunction](p.frameCount * p.rotationAmount);
     
+    if (p.cameraZoomStart !== undefined) {
+      const elapsed = p.song.currentTime() * 1000 - p.cameraZoomStart;
+      const progress = p.constrain(elapsed / p.cameraZoomDuration, 0, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentZ = p.lerp(p.cameraZoomFrom, p.cameraZoomTo, eased);
+      p.cam.setPosition(0, 0, currentZ);
+      
+      if (progress >= 1) {
+        p.cameraZoomStart = undefined;
+      }
+    }
+    
     if (p.mouseIsPressed && p.mouseButton === p.CENTER) {
       const zoomSpeed = 2;
       const deltaY = p.mouseY - p.pmouseY;
       p.cam.setPosition(0, 0, p.cam.eyeZ + deltaY * zoomSpeed);
+      p.cameraZoomStart = undefined;
     }
     
     p.snowSphere.show();
 
     for (let i = p.snowflakes.length - 1; i >= 0; i--) {
-        p.snowflakes[i].update();
         p.snowflakes[i].draw();
     }
   };
@@ -80,34 +94,73 @@ const sketch = (p) => {
   };
 
   p.executeTrack1 = (note) => {
-    const notesPerBarForLoop = [8, 6, 8, 8, 8, 8, 7, 5];
+    const resetCues = [14, 31, 46, 1];
     const { currentCue, durationTicks } = note;
     const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
-    const x = p.random(-p.width / 2, p.width / 2);
-    const y = p.random(-p.height / 2, p.height / 2);
-    const z = -p.height;
     
-    const loopLength = notesPerBarForLoop.reduce((a, b) => a + b, 0);
-    const positionInLoop = ((currentCue - 1) % loopLength) + 1;
-    let cumulative = 0;
-    
-    if (notesPerBarForLoop.some(notes => (cumulative += notes) === positionInLoop)) {
+    if (resetCues.includes(currentCue % 57)) {
       p.snowflakes = [];
+      p.patternIndex = 0;
+      p.phraseNoteCount = 0;
     }
 
-    p.snowflakes.push(new Snowflake(p, x, y, z, duration));
+    if (!p.snowflakePositions || p.patternIndex === 0) {
+      if (p.phraseNoteCount === undefined) p.phraseNoteCount = 0;
+      p.phraseNoteCount++;
+      
+      const nextResetCue = resetCues.find(cue => cue > (currentCue % 57)) || (resetCues[0] + 57);
+      const notesUntilReset = nextResetCue - (currentCue % 57);
+      
+      if (p.patternIndex === 0 && p.phraseNoteCount === 1) {
+        p.generatePatternPositions(notesUntilReset);
+      }
+    }
+
+    if (p.snowflakePositions && p.snowflakePositions.length > 0) {
+      const posIndex = p.patternIndex % p.snowflakePositions.length;
+      const [x, y, z] = p.snowflakePositions[posIndex];
+      p.snowflakes.push(new Snowflake(p, x, y, z, duration));
+      p.patternIndex++;
+    }
+  };
+
+  p.generatePatternPositions = (count) => {
+    p.snowflakePositions = [];
+    const radius = p.height * 0.35;
+    const z = 0;
+    
+    if (count === 1) {
+      p.snowflakePositions.push([0, 0, z]);
+    } else {
+      p.snowflakePositions.push([0, 0, z]);
+      
+      for (let i = 1; i < count; i++) {
+        const angle = p.TWO_PI * ((i - 1) / (count - 1));
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        
+        p.snowflakePositions.push([x, y, z]);
+      }
+    }
   };
 
   p.executeTrack2 = (note) => {
-    const { durationTicks } = note;
-    const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
+    const { currentCue, durationTicks } = note;
+    const duration = (durationTicks / p.PPQ) * (60 / p.bpm) * 2;
     
-    p.snowSphere = new SnowSphere(p, duration * 1000, true);
-    p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
-    p.rotationAmount = p.random([-0.005, 0.005]);
-    
-    const auroraGradient = p.generateAuroraBackground();
-    document.documentElement.style.setProperty('--gradient-bg', auroraGradient);
+    if(currentCue % 2 === 1) {
+      p.snowSphere = new SnowSphere(p, duration * 1000, true);
+      p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
+      p.rotationAmount = p.random([-0.005, 0.005]);
+      
+      const auroraGradient = p.generateAuroraBackground();
+      document.documentElement.style.setProperty('--gradient-bg', auroraGradient);
+      
+      p.cameraZoomStart = p.song.currentTime() * 1000;
+      p.cameraZoomDuration = duration * 1000;
+      p.cameraZoomFrom = p.height / 2;
+      p.cameraZoomTo = p.height;
+    }
   };
 
   p.generateAuroraBackground = () => {

@@ -5,16 +5,17 @@ export default class Snowflake {
         this.p = p;
 
         const screenMinDimension = Math.min(p.width, p.height);
-        this.baseSize = screenMinDimension * 0.2;
+        this.baseSize = screenMinDimension * 0.15;
         this.size = this.baseSize;
 
-        this.buffer = this.p.createGraphics(100, 100);
+        this.buffer = this.p.createGraphics(128, 128);
         this.buffer.colorMode(this.p.HSB);
         this.buffer.translate(this.buffer.width / 2, this.buffer.height / 2);
         this.buffer.rotate(this.p.PI / 6);
         this.buffer.noFill();
 
         this.generateParticles();
+        this.drawToBuffer(1);
 
         this.loc = this.p.createVector(x, y, z);
 
@@ -72,22 +73,6 @@ export default class Snowflake {
         this.flake2 = flake2;
     }
 
-
-
-    update() {
-        const currentTime = this.p.song.currentTime() * 1000;
-        const elapsed = currentTime - this.birthTime;
-        const rawProgress = elapsed / this.duration;
-
-        this.progress = this.p.constrain(
-            this.reversed ? 1 - rawProgress : rawProgress,
-            0,
-            1
-        );
-
-        this.drawToBuffer(this.progress);
-    }
-
     drawToBuffer(progress) {
         this.buffer.clear();
         // Calculate how many particles to show based on progress (index limit)
@@ -128,6 +113,16 @@ export default class Snowflake {
     draw() {
         this.p.push();
         this.p.translate(this.loc.x, this.loc.y, this.loc.z);
+        
+        const currentRotation = this.p.frameCount * this.p.rotationAmount;
+        if (this.p.rotationFunction === 'rotateX') {
+            this.p.rotateX(-currentRotation);
+        } else if (this.p.rotationFunction === 'rotateY') {
+            this.p.rotateY(-currentRotation);
+        } else if (this.p.rotationFunction === 'rotateZ') {
+            this.p.rotateZ(-currentRotation);
+        }
+        
         this.p.rotateZ(this.p.frameCount / this.rotspd);
         this.p.texture(this.buffer);
         this.p.noStroke();
