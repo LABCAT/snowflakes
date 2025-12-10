@@ -5,7 +5,7 @@ export default class Snowflake {
         this.p = p;
 
         const screenMinDimension = Math.min(p.width, p.height);
-        this.baseSize = screenMinDimension * 0.15;
+        this.baseSize = screenMinDimension * 0.1;
         this.size = this.baseSize;
 
         this.buffer = this.p.createGraphics(128, 128);
@@ -114,7 +114,8 @@ export default class Snowflake {
         this.p.push();
         this.p.translate(this.loc.x, this.loc.y, this.loc.z);
         
-        const currentRotation = this.p.frameCount * this.p.rotationAmount;
+        const rotationFrames = this.p.frameCount - this.p.rotationStartFrame;
+        const currentRotation = rotationFrames * this.p.rotationAmount;
         if (this.p.rotationFunction === 'rotateX') {
             this.p.rotateX(-currentRotation);
         } else if (this.p.rotationFunction === 'rotateY') {

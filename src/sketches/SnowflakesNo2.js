@@ -46,6 +46,7 @@ const sketch = (p) => {
     p.snowSphere = new SnowSphere(p, 1000);
     p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
     p.rotationAmount = p.random([-0.005, 0.005]);
+    p.rotationStartFrame = p.frameCount;
     
     p.snowflakePositions = [];
     p.patternIndex = 0;
@@ -152,6 +153,7 @@ const sketch = (p) => {
       p.snowSphere = new SnowSphere(p, duration * 1000, true);
       p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
       p.rotationAmount = p.random([-0.005, 0.005]);
+      p.rotationStartFrame = p.frameCount;
       
       const auroraGradient = p.generateAuroraBackground();
       document.documentElement.style.setProperty('--gradient-bg', auroraGradient);
