@@ -51,6 +51,8 @@ const sketch = (p) => {
     p.snowflakePositions = [];
     p.patternIndex = 0;
     
+    p.snowflakeBufferPool = Snowflake.createBufferPool(p, 6);
+    
     // Set aurora background
     const auroraGradient = p.generateAuroraBackground();
     document.documentElement.style.setProperty('--gradient-bg', auroraGradient);
@@ -73,25 +75,12 @@ const sketch = (p) => {
       }
     }
     
-    if (p.mouseIsPressed && p.mouseButton === p.CENTER) {
-      const zoomSpeed = 2;
-      const deltaY = p.mouseY - p.pmouseY;
-      p.cam.setPosition(0, 0, p.cam.eyeZ + deltaY * zoomSpeed);
-      p.cameraZoomStart = undefined;
-    }
-    
     p.snowSphere.show();
 
-    for (let i = p.snowflakes.length - 1; i >= 0; i--) {
+    const len = p.snowflakes.length;
+    for (let i = 0; i < len; i++) {
         p.snowflakes[i].draw();
     }
-  };
-  
-  p.mouseWheel = (event) => {
-    const zoomSpeed = 0.5;
-    const newZ = p.cam.eyeZ + event.delta * zoomSpeed;
-    p.cam.setPosition(0, 0, newZ);
-    return false;
   };
 
   p.executeTrack1 = (note) => {
@@ -120,14 +109,16 @@ const sketch = (p) => {
     if (p.snowflakePositions && p.snowflakePositions.length > 0) {
       const posIndex = p.patternIndex % p.snowflakePositions.length;
       const [x, y, z] = p.snowflakePositions[posIndex];
-      p.snowflakes.push(new Snowflake(p, x, y, z, duration));
+      p.snowflakes.push(new Snowflake(p, x, y, z, duration, p.snowflakeBufferPool));
       p.patternIndex++;
     }
   };
 
   p.generatePatternPositions = (count) => {
     p.snowflakePositions = [];
-    const radius = p.height * 0.35;
+    const screenMinDimension = Math.min(p.width, p.height);
+    const radiusPercent = screenMinDimension < 600 ? 0.25 : 0.35;
+    const radius = screenMinDimension * radiusPercent;
     const z = 0;
     
     if (count === 1) {
@@ -147,9 +138,8 @@ const sketch = (p) => {
 
   p.executeTrack2 = (note) => {
     const { currentCue, durationTicks } = note;
-    const duration = (durationTicks / p.PPQ) * (60 / p.bpm) * 2;
+    const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
     
-    if(currentCue % 2 === 1) {
       p.snowSphere = new SnowSphere(p, duration * 1000, true);
       p.rotationFunction = p.random(['rotateX', 'rotateY', 'rotateZ']);
       p.rotationAmount = p.random([-0.005, 0.005]);
@@ -162,7 +152,6 @@ const sketch = (p) => {
       p.cameraZoomDuration = duration * 1000;
       p.cameraZoomFrom = p.height / 2;
       p.cameraZoomTo = p.height;
-    }
   };
 
   p.generateAuroraBackground = () => {

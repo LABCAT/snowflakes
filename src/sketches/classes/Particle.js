@@ -30,9 +30,15 @@ export default class Particle {
     }
  
     intersects() {
-        for (let i of this.flake) {
-            let d = this.p.dist(i.pos.x, i.pos.y, this.pos.x, this.pos.y);
-            if (d < this.r * 2) {
+        const px = this.pos.x;
+        const py = this.pos.y;
+        const threshold = this.r * 2;
+        const thresholdSq = threshold * threshold;
+        
+        for (let i = 0; i < this.flake.length; i++) {
+            const dx = this.flake[i].pos.x - px;
+            const dy = this.flake[i].pos.y - py;
+            if (dx * dx + dy * dy < thresholdSq) {
                 return true;
             }
         }
