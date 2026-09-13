@@ -1,13 +1,3 @@
-# #AudioReactive #Snowflakes
-
-Creative coding experiments exploring audio-reactive visualizations through the form of a snowflake. Each animation uses precise MIDI synchronization to trigger visual transformations that respond to different audio tracks, creating a dynamic interplay between sound and form.
-
-Follow on Instagram → https://www.instagram.com/labcat2020/
-
-## #SnowflakesNo2
-
-https://snowflakes.labcat.nz/number-2/
-
 The Frozen Geometry of Sound ❄️🔊
 
 #SnowflakesNo2 — the crystallization of frequency. ❄️ Every #Snowflake is a mystical #Vibration where #GenerativeArt meets the ethereal. 💠🌀
